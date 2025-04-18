@@ -1,9 +1,17 @@
 # src/viewChats.py
+"""
+TUI Viewer for Botpress Conversation Transcripts in JSONL format.
+
+Displays conversations from a JSONL file in a terminal user interface,
+allowing navigation between conversations and scrolling through messages.
+Provides options to copy conversation IDs or the full JSONL data to the clipboard.
+"""
 import json
 import os
 import curses
 import datetime
 import textwrap
+import pyperclip
 
 class ConversationViewer:
     def __init__(self, filename):
@@ -86,6 +94,14 @@ class ConversationViewer:
             elif key == ord('G'):  # Go to bottom
                 # This will be adjusted in display_conversation
                 self.scroll_position = 9999
+            # --- Clipboard ---
+            elif key == ord('y'): # Copy Conversation ID
+                conv_id = self.conversations[self.current_index].get("conversation_id", "N/A")
+                pyperclip.copy(conv_id)
+            elif key == ord('T'): # Copy JSONL content
+                # Re-serialize the current conversation data
+                json_text = json.dumps(self.conversations[self.current_index])
+                pyperclip.copy(json_text)
     
     def display_conversation(self, stdscr, height, width):
         """Display the current conversation"""

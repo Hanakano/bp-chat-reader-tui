@@ -16,19 +16,19 @@
             python312
             python312Packages.tqdm
             python312Packages.pip
+            python312Packages.pyperclip
             python312Packages.venvShellHook
             uv
           ];
-          
           shellHook = ''
             echo "Initializing env..."
-            # uv install
+            echo "🔁 Loading environment variables from .env..."
+            if [ -f .env ]; then
+              export $(grep -v '^#' .env | xargs)
+            else
+              echo "⚠️  .env file not found. You may want to copy .env.sample and fill it in."
+            fi
           '';
-          
-          # Set environment variables within the shell
-          BOTPRESS_WORKSPACE_ID = "wkspace_01JAEPF5382463QW7FKWSGFHJA";
-          BOTPRESS_BOT_ID = "de90d852-0739-4f36-bad6-a5cb5f9df49c";
-          BOTPRESS_TOKEN = "bp_pat_0lF5ffsJGmkQuRha92zExVggmnuyflpS9KGT";
         };
       });
     };
