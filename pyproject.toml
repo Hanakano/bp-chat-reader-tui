@@ -8,6 +8,7 @@ dependencies = [
     "pyperclip>=1.9.0",
     "tqdm>=4.67.1",
 ]
-[tool.uv.scripts]
-fetch = "python3 src/fetchMessages.py --output data/bot_conversations.jsonl"
-view = "python3 src/viewChats.py -f data/bot_conversations.jsonl"
+
+[project.scripts]
+fetch = "python3 src/fetchMessages.py"
+view = "python3 src/viewChats.py"

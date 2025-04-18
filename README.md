@@ -53,3 +53,8 @@ python src/viewChats.py --file data/bot_chat_output.json
 * `G - go to bottom`
 * `y - copy conversation Id to clipboard`
 * `t - copy chat JSON to clipboard`
+
+# TODOs
+- [ ] Add shortcut [f] to search by conversation id
+- [ ] Refactor fetch and view into smaller files
+- [ ] Package as a python lib?
