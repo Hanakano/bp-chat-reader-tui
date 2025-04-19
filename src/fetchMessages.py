@@ -27,14 +27,9 @@ from typing import List, Dict, Any, Optional, TextIO # Added for type hints
 # Maximum number of concurrent API calls for fetching messages (can be overridden by args)
 MAX_CONCURRENT_CALLS: int = 10
 
-# --- Helper Type Aliases (Optional but improve readability) ---
-MessageType = Dict[str, Any]
-ConversationDataType = Dict[str, Any] # Represents the structure returned by fetch_messages
-OutputJsonLineType = Dict[str, Any] # Represents the structure written to the JSONL file
-
 # --- Functions ---
 
-def fetch_messages(conversation_id: str) -> ConversationDataType:
+def fetch_messages(conversation_id: str) -> Dict[str, Any]:
     """
     Fetches and processes messages for a specific conversation ID from the Botpress API.
 
@@ -74,7 +69,7 @@ def fetch_messages(conversation_id: str) -> ConversationDataType:
         "x-workspace-id": workspace_id or ""
     }
     
-    processed_messages: List[MessageType] = []
+    processed_messages: List[Dict[str, Any]] = []
     next_token = None
     page_count = 0
     
@@ -90,11 +85,11 @@ def fetch_messages(conversation_id: str) -> ConversationDataType:
                 data: Dict[str, Any] = json.loads(response.read().decode('utf-8'))
                 
                 # Process this page of messages
-                page_messages: List[MessageType] = []
+                page_messages: List[Dict[str, Any]] = []
                 raw_messages: List[Dict[str, Any]] = data.get("messages", [])
                 
                 for message in raw_messages:
-                    msg_data: MessageType = {
+                    msg_data: Dict[str, Any] = {
                         "type": message.get("type"),
                         "direction": message.get("direction"),
                         "timestamp": message.get("updatedAt")
@@ -236,7 +231,7 @@ def fetch_conversations_and_write(output_file_handle: TextIO, max_to_save: int =
                         for future in concurrent.futures.as_completed(future_to_id):
                             conv_id = future_to_id[future]
                             try:
-                                result: ConversationDataType = future.result()
+                                result: Dict[str, Any] = future.result()
                                 
                                 if result["error"]:
                                      tqdm.write(f"Skipping conv {conv_id} due to error: {result['error']}")
@@ -244,7 +239,7 @@ def fetch_conversations_and_write(output_file_handle: TextIO, max_to_save: int =
 
                                 if result["has_incoming"]:
                                     # Prepare data for JSON line
-                                    output_data: OutputJsonLineType = {
+                                    output_data: Dict[str, Any] = {
                                         "conversation_id": result["conversation_id"],
                                         "messages": result["messages"]
                                     }
