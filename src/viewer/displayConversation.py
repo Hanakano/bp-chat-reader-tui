@@ -45,6 +45,39 @@ def format_duration(duration_minutes: float) -> str:
     else:
         return f"{seconds}s"
 
+def format_boxed_options(options: List[Dict[str, str]], max_width: int, indent: int = 4) -> List[Tuple[str, int]]:
+    """Format options as boxed buttons in a horizontal layout, with wrapping if needed.
+    
+    Args:
+        options: List of option objects with 'label' keys
+        max_width: Maximum width available for rendering
+        indent: Left indent for the options
+        
+    Returns:
+        List of tuples (text, color_pair) for each line of rendered options
+    """
+    if not options:
+        return []
+    
+    lines = []
+    current_line = " " * indent
+    button_color = 7
+
+    for option in options:
+        label = option.get('label', option.get('value', 'Option'))
+        button = f"[ {label} ]  "
+
+        if len(current_line) + len(button) > max_width:
+            lines.append((current_line.rstrip(), button_color))
+            current_line = " " * indent
+
+        current_line += button
+
+    if current_line.strip():
+        lines.append((current_line.rstrip(), button_color))
+    
+    return lines
+
 def display_conversation(stdscr, conversation: Dict[str, Any], 
                         current_index: int, total_conversations: int,
                         scroll_position: int, height: int, width: int) -> int:
@@ -114,7 +147,6 @@ def display_conversation(stdscr, conversation: Dict[str, Any],
     for msg in messages:
         direction = msg.get("direction", "unknown")
         msg_type = msg.get("type", "unknown")
-        text = msg.get("text", f"[{msg_type} message]")
         timestamp = format_timestamp(msg.get("timestamp", ""))
         
         if direction == "outgoing":
@@ -126,22 +158,55 @@ def display_conversation(stdscr, conversation: Dict[str, Any],
             color_pair = 2
             align = "right"
         
-        # Wrap text to fit screen
-        wrapped_lines = textwrap.wrap(text, width=max_width - len(prefix))
-        if not wrapped_lines:
-            wrapped_lines = ["[Empty message]"]
-            
-        # Format: timestamp, prefix, and message
+        # Handle different message types
         formatted_lines = []
         formatted_lines.append((timestamp, 0))  # Timestamp with no color
         
-        for i, line in enumerate(wrapped_lines):
-            if i == 0:  # First line includes the prefix
-                formatted_lines.append((f"{prefix}{line}", color_pair, align))
-            else:
-                # Indent continuation lines
-                formatted_lines.append((f"{'':>{len(prefix)}}{line}", color_pair, align))
+        if msg_type in ["choice", "dropdown"]:
+            # Process choice or dropdown message
+            payload = msg.get("payload", {})
+            text = payload.get("text", f"[{msg_type} message]")
+            options = payload.get("options", [])
+            
+            # Wrap the main text
+            wrapped_lines = textwrap.wrap(text, width=max_width - len(prefix))
+            
+            # Add the prefix to the first line
+            for i, line in enumerate(wrapped_lines):
+                if i == 0:
+                    formatted_lines.append((f"{prefix}{line}", color_pair, align))
+                else:
+                    formatted_lines.append((f"{'':>{len(prefix)}}{line}", color_pair, align))
+            
+            # Add a separator before options
+            formatted_lines.append(("", 0))
+            
+            # Add the options as boxed buttons
+            option_lines = format_boxed_options(options, max_width, len(prefix))
+            formatted_lines.extend([(text, color) for text, color in option_lines])
+            
+        else:
+            # Process regular text message
+            text = msg.get("text", "")
+            if not text and "payload" in msg and "text" in msg["payload"]:
+                text = msg["payload"]["text"]
                 
+            if not text:
+                text = f"[{msg_type} message]"
+                
+            # Wrap text to fit screen
+            wrapped_lines = textwrap.wrap(text, width=max_width - len(prefix))
+            if not wrapped_lines:
+                wrapped_lines = ["[Empty message]"]
+                
+            # Format with prefix on first line
+            for i, line in enumerate(wrapped_lines):
+                if i == 0:  # First line includes the prefix
+                    formatted_lines.append((f"{prefix}{line}", color_pair, align))
+                else:
+                    # Indent continuation lines
+                    formatted_lines.append((f"{'':>{len(prefix)}}{line}", color_pair, align))
+        
         message_lines.append(formatted_lines)
         
     # Add chat end marker

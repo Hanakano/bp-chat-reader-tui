@@ -37,6 +37,9 @@ Or with uv:
 ```bash
 uv run src/viewChats.py --file data/my_chat_transcripts.jsonl
 ```
+
+> Note: You don't _have_ to save transcripts to a data/ directory, but I think it is good practice. The .gitignore will not track that folder, so if you fork this repo there is no risk of leaking your chat transcripts.
+
 ## Installation
 
 ### Nix Flake
@@ -112,5 +115,5 @@ python src/viewChats.py --file data/bot_chat_output.json
 # TODOs
 - [x] Add shortcut [f] to search by conversation id
 - [x] Refactor fetch and view into smaller files
-- [ ] Add render option for buttons/choices
+- [x] Add render option for buttons/choices
 - [ ] Add render option for images/cards

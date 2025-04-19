@@ -95,17 +95,9 @@ def fetch_messages(conversation_id: str, createdAt: str, updatedAt: str) -> Dict
                     msg_data: Dict[str, Any] = {
                         "type": message.get("type"),
                         "direction": message.get("direction"),
-                        "timestamp": message.get("updatedAt")
+                        "timestamp": message.get("updatedAt"),
+                        "payload":message.get("payload")
                     }
-                    
-                    # Extract text for text messages
-                    payload: Optional[Dict[str, Any]] = message.get("payload")
-                    if message.get("type") == "text" and payload and "text" in payload:
-                        msg_data["text"] = payload["text"]
-                    else:
-                        # Provide a more descriptive placeholder if text is missing
-                        msg_type: str = message.get('type', 'unknown')
-                        msg_data["text"] = f"[{msg_type} message]"
                     
                     page_messages.append(msg_data)
                 

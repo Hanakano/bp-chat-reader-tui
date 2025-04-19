@@ -144,6 +144,7 @@ def run_viewer(stdscr, data: ConversationData) -> None:
     curses.init_pair(4, curses.COLOR_YELLOW, -1)    # End marker
     curses.init_pair(5, curses.COLOR_CYAN, -1)      # Tags
     curses.init_pair(6, curses.COLOR_RED, -1)       # Unread tag
+    curses.init_pair(7, curses.COLOR_WHITE, -1)  # For buttons - reverse color
     
     while True:
         stdscr.clear()
