@@ -1,4 +1,5 @@
 # Botpress Chat Transcript Viewer TUI
+
 ![header image](./TuiCover.png.gif)
 
 Do you need to read through hundreds of [Botpress](www.botpress.com) chats? The admin dashboard is great, but it takes _at least_ three clicks and two dynamic content panes to load before you can read _just one_ chat - and then 2 - 3 more clicks to load up the next one. There's also not an easy way to mark transcripts as read to keep track of which ones you have and have not read.
