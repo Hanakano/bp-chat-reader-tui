@@ -2,6 +2,8 @@
 
 Do you need to read through hundreds of [Botpress](www.botpress.com) chats? The admin dashboard is great, but it takes _at least_ three clicks and two dynamic content panes to load before you can read _just one_ chat - and then 2 - 3 more clicks to load up the next one. There's also not an easy way to mark transcripts as read to keep track of which ones you have and have not read.
 
+![gif of usage](./tuiUsage.gif)
+
 This app aims to fix those problems by:
 1. Fetching conversations and messages from Botpress servers and saving them locally
 2. Displaying conversations in a snappy Terminal User Interface (TUI)
@@ -87,6 +89,8 @@ python src/viewChats.py --file data/bot_chat_output.json
 ```
 
 ### Keyboard Shortcuts:
+
+![help screenshot](./helpScreen.png)
 
 **Navigation**
 * `h, l, ←, →`          Previous/Next conversation
