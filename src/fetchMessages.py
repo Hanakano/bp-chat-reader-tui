@@ -17,11 +17,12 @@ import json
 import urllib.request
 import os
 import time
+import datetime
 import concurrent.futures
 import sys
 from urllib.error import HTTPError
 from tqdm import tqdm
-from typing import List, Dict, Any, Optional, TextIO # Added for type hints
+from typing import List, Dict, Tuple, Any, Optional, TextIO, TypeVarTuple # Added for type hints
 
 # --- Constants ---
 # Maximum number of concurrent API calls for fetching messages (can be overridden by args)
@@ -29,7 +30,7 @@ MAX_CONCURRENT_CALLS: int = 10
 
 # --- Functions ---
 
-def fetch_messages(conversation_id: str) -> Dict[str, Any]:
+def fetch_messages(conversation_id: str, createdAt: str, updatedAt: str) -> Dict[str, Any]:
     """
     Fetches and processes messages for a specific conversation ID from the Botpress API.
 
@@ -38,6 +39,8 @@ def fetch_messages(conversation_id: str) -> Dict[str, Any]:
 
     Args:
         conversation_id: The unique identifier for the conversation.
+        createdAt: When the chat started, passed through for metadata
+        updatedAt: When the chat ended, passed through for metadata
 
     Returns:
         A dictionary containing:
@@ -92,25 +95,15 @@ def fetch_messages(conversation_id: str) -> Dict[str, Any]:
                     msg_data: Dict[str, Any] = {
                         "type": message.get("type"),
                         "direction": message.get("direction"),
-                        "timestamp": message.get("updatedAt")
+                        "timestamp": message.get("updatedAt"),
+                        "payload":message.get("payload")
                     }
-                    
-                    # Extract text for text messages
-                    payload: Optional[Dict[str, Any]] = message.get("payload")
-                    if message.get("type") == "text" and payload and "text" in payload:
-                        msg_data["text"] = payload["text"]
-                    else:
-                        # Provide a more descriptive placeholder if text is missing
-                        msg_type: str = message.get('type', 'unknown')
-                        msg_data["text"] = f"[{msg_type} message]"
                     
                     page_messages.append(msg_data)
                 
                 # Get next token for pagination (if available)
                 next_token = data.get("meta",{}).get("nextToken")
-                if next_token is not None:
-                    tqdm.write(f"Fetching additional messages for {conversation_id}")
-                
+                               
                 # Add messages from this page - newer messages come in later pages
                 # so we append to the end for chronological order (oldest first)
                 processed_messages.extend(page_messages)
@@ -126,6 +119,8 @@ def fetch_messages(conversation_id: str) -> Dict[str, Any]:
                 pass  # Ignore if reading body fails
             return {
                 "conversation_id": conversation_id,
+                "createdAt": createdAt,
+                "updatedAt":updatedAt,
                 "messages": [],
                 "has_incoming": False,
                 "error": error_message
@@ -133,6 +128,8 @@ def fetch_messages(conversation_id: str) -> Dict[str, Any]:
         except Exception as e:
             return {
                 "conversation_id": conversation_id,
+                "createdAt": createdAt,
+                "updatedAt":updatedAt,
                 "messages": [],
                 "has_incoming": False,
                 "error": f"Unexpected error: {str(e)}"
@@ -146,6 +143,8 @@ def fetch_messages(conversation_id: str) -> Dict[str, Any]:
     
     return {
         "conversation_id": conversation_id,
+        "createdAt": createdAt,
+        "updatedAt":updatedAt,
         "messages": processed_messages,
         "has_incoming": has_incoming,
         "error": None  # Explicitly add error field for consistency
@@ -207,15 +206,15 @@ def fetch_conversations_and_write(output_file_handle: TextIO, max_to_save: int =
                     list_data: Dict[str, Any] = json.loads(response.read().decode('utf-8'))
                     
                     # Extract conversation IDs from this page
-                    page_conversation_ids: List[str] = [
-                        conv["id"] for conv in list_data.get("conversations", []) if "id" in conv
+                    page_conversation_data: List[Tuple[str,str, str]] = [
+                        (conv["id"], conv["createdAt"], conv["updatedAt"]) for conv in list_data.get("conversations", []) if "id" in conv
                     ]
                     
-                    if not page_conversation_ids:
+                    if not page_conversation_data:
                         tqdm.write(f"\nNo more conversations available at page {page}.")
                         break
                     
-                    current_batch_size = len(page_conversation_ids)
+                    current_batch_size = len(page_conversation_data)
                     processed_ids_count += current_batch_size
                     tqdm.write(f"Fetched page {page}, {current_batch_size} conversation IDs. Total processed: {processed_ids_count} Total saved: {saved_count}")
                     
@@ -223,8 +222,8 @@ def fetch_conversations_and_write(output_file_handle: TextIO, max_to_save: int =
                     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_CONCURRENT_CALLS) as executor:
                         # Map Future object back to conversation ID
                         future_to_id: Dict[concurrent.futures.Future, str] = {
-                            executor.submit(fetch_messages, conv_id): conv_id 
-                            for conv_id in page_conversation_ids
+                            executor.submit(fetch_messages, conv_id, createdAt, updatedAt): conv_id 
+                            for conv_id, createdAt, updatedAt in page_conversation_data
                         }
                         
                         # Process results as they complete
@@ -239,9 +238,18 @@ def fetch_conversations_and_write(output_file_handle: TextIO, max_to_save: int =
 
                                 if result["has_incoming"]:
                                     # Prepare data for JSON line
+                                    # Convert ISO timestamps to datetime objects and calculate duration in minutes
+                                    created_datetime = datetime.datetime.fromisoformat(result["createdAt"].replace("Z", "+00:00"))
+                                    updated_datetime = datetime.datetime.fromisoformat(result["updatedAt"].replace("Z", "+00:00"))
+                                    duration_minutes = (updated_datetime - created_datetime).total_seconds() / 60.0
                                     output_data: Dict[str, Any] = {
                                         "conversation_id": result["conversation_id"],
-                                        "messages": result["messages"]
+                                        "messages": result["messages"],
+                                        "metadata":{
+                                            "createdDate":result["createdAt"],
+                                            "duration":duration_minutes,
+                                            "tags":["unread"]
+                                        }
                                     }
                                     # Write immediately to the file
                                     output_file_handle.write(json.dumps(output_data) + "\n")

@@ -8,7 +8,7 @@
         pkgs = import nixpkgs { inherit system; };
       });
     in
-    {
+      {
       devShells = forEachSupportedSystem ({ pkgs }: {
         default = pkgs.mkShell {
           venvDir = ".venv";
@@ -24,11 +24,26 @@
             echo "Initializing env..."
             echo "🔁 Loading environment variables from .env..."
             if [ -f .env ]; then
-              export $(grep -v '^#' .env | xargs)
+            export $(grep -v '^#' .env | xargs)
             else
-              echo "⚠️  .env file not found. You may want to copy .env.sample and fill it in."
+            echo "⚠️  .env file not found. You may want to copy .env.sample and fill it in."
             fi
-          '';
+
+            # Handy command aliases
+            # Add local bin directory to PATH
+            export PATH="$PWD/.bin:$PATH"
+
+            # Create wrapper scripts if not exist
+            mkdir -p .bin
+
+            echo '#!/usr/bin/env bash' > .bin/fetch
+            echo 'python src/fetchMessages.py "$@"' >> .bin/fetch
+            chmod +x .bin/fetch
+
+            echo '#!/usr/bin/env bash' > .bin/view
+            echo 'python src/viewChats.py "$@"' >> .bin/view
+            chmod +x .bin/view
+            '';
         };
       });
     };
